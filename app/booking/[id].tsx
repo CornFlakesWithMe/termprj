@@ -30,7 +30,7 @@ export default function BookingConfirmationScreen() {
   const router = useRouter();
   const { cars } = useCarStore();
   const { currentUser } = useUserStore();
-  const { bookings, getBookingById } = useBookingStore();
+  const { bookings, getBookingById, cancelBooking } = useBookingStore();
   const { reviews, createReview, getReviewByBookingId } = useReviewStore();
   const [booking, setBooking] = useState<any>(null);
   const [car, setCar] = useState<any>(null);
@@ -96,6 +96,19 @@ export default function BookingConfirmationScreen() {
     }
   };
 
+  const handleCancelBooking = async () => {
+    if (!booking) return;
+
+    try {
+      const success = await cancelBooking(booking.id);
+      if (success) {
+        router.replace("/bookings");
+      }
+    } catch (error) {
+      console.error("Failed to cancel booking:", error);
+    }
+  };
+
   if (!booking || !car || !currentUser) {
     return (
       <View style={styles.loadingContainer}>
@@ -113,6 +126,15 @@ export default function BookingConfirmationScreen() {
       <Stack.Screen
         options={{
           title: "Booking Confirmation",
+          headerRight: () =>
+            booking?.status === "pending" && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelBooking}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            ),
         }}
       />
 
@@ -474,5 +496,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  cancelButtonText: {
+    color: Colors.error,
+    fontSize: 16,
+    fontWeight: "500",
   },
 });

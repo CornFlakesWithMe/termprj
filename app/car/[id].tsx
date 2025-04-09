@@ -130,6 +130,19 @@ export default function CarDetailScreen() {
     router.push(`/messages/${owner.id}`);
   };
 
+  const handleDeleteCar = async () => {
+    if (!selectedCar) return;
+
+    try {
+      const success = await useCarStore.getState().deleteCar(selectedCar.id);
+      if (success) {
+        router.replace("/");
+      }
+    } catch (error) {
+      console.error("Failed to delete car:", error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Stack.Screen
@@ -147,6 +160,14 @@ export default function CarDetailScreen() {
           ),
           headerRight: () => (
             <View style={styles.headerButtons}>
+              {currentUser?.id === selectedCar?.ownerId && (
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={handleDeleteCar}
+                >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.headerButton}>
                 <Heart size={24} color={Colors.white} />
               </TouchableOpacity>
@@ -552,5 +573,10 @@ const styles = StyleSheet.create({
   bookButton: {
     flex: 1,
     marginLeft: 16,
+  },
+  deleteButtonText: {
+    color: Colors.error,
+    fontSize: 16,
+    fontWeight: "500",
   },
 });

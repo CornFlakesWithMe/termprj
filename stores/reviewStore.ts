@@ -1,10 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { Review } from "@/types";
-import { MOCK_REVIEWS } from "@/constants/mockData";
 import { NotificationCenter } from "@/patterns/observer";
 import { useCarStore } from "./carStore";
+
+export interface Review {
+  id: string;
+  bookingId: string;
+  carId: string;
+  reviewerId: string;
+  reviewedId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  type: "owner" | "renter";
+}
 
 interface ReviewState {
   reviews: Review[];
@@ -12,78 +22,84 @@ interface ReviewState {
   error: string | null;
   
   // Actions
-  fetchReviews: () => Promise<void>;
-  addReview: (
+  createReview: (
     bookingId: string,
+    carId: string,
     reviewerId: string,
-    targetId: string,
-    targetType: "user" | "car",
+    reviewedId: string,
     rating: number,
-    comment: string
+    comment: string,
+    type: "owner" | "renter"
   ) => Promise<Review | null>;
-  getReviewsByTargetId: (targetId: string, targetType: "user" | "car") => Review[];
-  getReviewsByReviewerId: (reviewerId: string) => Review[];
-  getAverageRating: (targetId: string, targetType: "user" | "car") => number;
+  getReviewsByCarId: (carId: string) => Review[];
+  getReviewsByUserId: (userId: string) => Review[];
+  getReviewByBookingId: (bookingId: string) => Review | undefined;
+  getAverageRating: (carId: string) => number;
+  getReviewsByTargetId: (targetId: string) => Review[];
 }
 
 export const useReviewStore = create<ReviewState>()(
   persist(
     (set, get) => ({
-      reviews: MOCK_REVIEWS,
+      reviews: [],
       isLoading: false,
       error: null,
       
-      fetchReviews: async () => {
-        set({ isLoading: true, error: null });
-        
-        try {
-          // In a real app, this would be an API call
-          // For demo purposes, we're using mock data
-          set({ reviews: MOCK_REVIEWS, isLoading: false });
-        } catch (error) {
-          set({ isLoading: false, error: "Failed to fetch reviews" });
-        }
-      },
-      
-      addReview: async (
+      createReview: async (
         bookingId: string,
+        carId: string,
         reviewerId: string,
-        targetId: string,
-        targetType: "user" | "car",
+        reviewedId: string,
         rating: number,
-        comment: string
+        comment: string,
+        type: "owner" | "renter"
       ) => {
         set({ isLoading: true, error: null });
         
         try {
-          // Create new review
+          // Validate rating
+          if (rating < 1 || rating > 5) {
+            set({ isLoading: false, error: "Rating must be between 1 and 5" });
+            return null;
+          }
+          
+          // Check if review already exists for this booking
+          const existingReview = get().reviews.find(
+            (r) => r.bookingId === bookingId && r.type === type
+          );
+          
+          if (existingReview) {
+            set({ isLoading: false, error: "Review already exists for this booking" });
+            return null;
+          }
+          
           const newReview: Review = {
             id: Date.now().toString(),
             bookingId,
+            carId,
             reviewerId,
-            targetId,
-            targetType,
+            reviewedId,
             rating,
             comment,
             createdAt: new Date().toISOString(),
+            type,
           };
           
-          // Update reviews list
-          set(state => ({
+          set((state) => ({
             reviews: [...state.reviews, newReview],
             isLoading: false,
           }));
           
           // If it's a car review, update the car's rating
-          if (targetType === "car") {
+          if (type === "owner") {
             const carStore = useCarStore.getState();
-            const car = carStore.cars.find(c => c.id === targetId);
+            const car = carStore.cars.find(c => c.id === carId);
             
             if (car) {
-              const carReviews = [...get().getReviewsByTargetId(targetId, "car"), newReview];
+              const carReviews = [...get().getReviewsByCarId(carId), newReview];
               const newRating = carReviews.reduce((sum, review) => sum + review.rating, 0) / carReviews.length;
               
-              await carStore.updateCar(targetId, {
+              await carStore.updateCar(carId, {
                 rating: parseFloat(newRating.toFixed(1)),
                 reviewCount: carReviews.length,
               });
@@ -91,10 +107,10 @@ export const useReviewStore = create<ReviewState>()(
           }
           
           // Send notification to target user if it's a user review
-          if (targetType === "user") {
+          if (type === "renter") {
             const notificationCenter = NotificationCenter.getInstance();
             notificationCenter.sendReviewNotification(
-              targetId,
+              reviewedId,
               `You received a new review with ${rating} stars`,
               newReview.id
             );
@@ -102,30 +118,35 @@ export const useReviewStore = create<ReviewState>()(
           
           return newReview;
         } catch (error) {
-          set({ isLoading: false, error: "Failed to add review" });
+          set({ isLoading: false, error: "Failed to create review" });
           return null;
         }
       },
       
-      getReviewsByTargetId: (targetId: string, targetType: "user" | "car") => {
+      getReviewsByCarId: (carId: string) => {
+        return get().reviews.filter((review) => review.carId === carId);
+      },
+      
+      getReviewsByUserId: (userId: string) => {
         return get().reviews.filter(
-          review => review.targetId === targetId && review.targetType === targetType
+          (review) => review.reviewedId === userId || review.reviewerId === userId
         );
       },
       
-      getReviewsByReviewerId: (reviewerId: string) => {
-        return get().reviews.filter(review => review.reviewerId === reviewerId);
+      getReviewByBookingId: (bookingId: string) => {
+        return get().reviews.find((review) => review.bookingId === bookingId);
       },
       
-      getAverageRating: (targetId: string, targetType: "user" | "car") => {
-        const targetReviews = get().getReviewsByTargetId(targetId, targetType);
+      getAverageRating: (carId: string) => {
+        const carReviews = get().reviews.filter((review) => review.carId === carId);
+        if (carReviews.length === 0) return 0;
         
-        if (targetReviews.length === 0) {
-          return 0;
-        }
-        
-        const sum = targetReviews.reduce((total, review) => total + review.rating, 0);
-        return parseFloat((sum / targetReviews.length).toFixed(1));
+        const totalRating = carReviews.reduce((sum, review) => sum + review.rating, 0);
+        return totalRating / carReviews.length;
+      },
+
+      getReviewsByTargetId: (targetId: string) => {
+        return get().reviews.filter((review) => review.reviewedId === targetId);
       },
     }),
     {

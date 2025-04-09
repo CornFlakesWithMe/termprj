@@ -50,7 +50,7 @@ export default function CarDetailScreen() {
 
   useEffect(() => {
     if (selectedCar) {
-      const reviews = getReviewsByTargetId(selectedCar.id, "car");
+      const reviews = getReviewsByTargetId(selectedCar.id);
       setCarReviews(reviews);
     }
   }, [selectedCar, reviews]);
@@ -66,29 +66,53 @@ export default function CarDetailScreen() {
   const owner = useUserStore.getState().getUserById(selectedCar.ownerId);
 
   const handleDateChange = (start: Date | null, end: Date | null) => {
+    console.log("Date change:", { start, end });
     setStartDate(start);
     setEndDate(end);
   };
 
-  const isAvailable = startDate && endDate && isCarAvailable(
-    selectedCar.id,
-    startDate.toISOString(),
-    endDate.toISOString()
-  );
+  const isAvailable =
+    startDate &&
+    endDate &&
+    isCarAvailable(
+      selectedCar.id,
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
+
+  // Debug logs
+  useEffect(() => {
+    if (startDate && endDate) {
+      const availability = isCarAvailable(
+        selectedCar.id,
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      console.log("Availability check:", {
+        carId: selectedCar.id,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        isAvailable: availability,
+        carIsAvailable: selectedCar.isAvailable,
+        bookings: selectedCar.bookings,
+        availabilityCalendar: selectedCar.availabilityCalendar,
+      });
+    }
+  }, [startDate, endDate, selectedCar]);
 
   const calculateTotalPrice = () => {
     if (!startDate || !endDate) return 0;
-    
+
     const days = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    
+
     return days * selectedCar.pricePerDay;
   };
 
   const handleBookNow = () => {
     if (!currentUser || !startDate || !endDate) return;
-    
+
     router.push({
       pathname: "/booking/new",
       params: {
@@ -102,7 +126,7 @@ export default function CarDetailScreen() {
 
   const handleContactOwner = () => {
     if (!currentUser || !owner) return;
-    
+
     router.push(`/messages/${owner.id}`);
   };
 
@@ -225,7 +249,9 @@ export default function CarDetailScreen() {
               >
                 <Image
                   source={{
-                    uri: owner.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
+                    uri:
+                      owner.avatar ||
+                      "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
                   }}
                   style={styles.ownerAvatar}
                 />
@@ -280,14 +306,23 @@ export default function CarDetailScreen() {
           <Text style={styles.totalPrice}>
             ${calculateTotalPrice()}
             <Text style={styles.totalPriceUnit}>
-              {startDate && endDate ? ` for ${Math.ceil(
-                (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-              )} days` : ""}
+              {startDate && endDate
+                ? ` for ${Math.ceil(
+                    (endDate.getTime() - startDate.getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  )} days`
+                : ""}
             </Text>
           </Text>
         </View>
         <Button
-          title="Book Now"
+          title={
+            !startDate || !endDate
+              ? "Select Dates"
+              : !isAvailable
+              ? "Not Available"
+              : "Book Now"
+          }
           onPress={handleBookNow}
           disabled={!startDate || !endDate || !isAvailable}
           style={styles.bookButton}

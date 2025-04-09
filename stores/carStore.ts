@@ -141,33 +141,44 @@ export const useCarStore = create<CarState>()(
         // Check if the car is available
         if (!car.isAvailable) return false;
 
+        // If there are no bookings and no availability calendar, the car is available
+        if (car.bookings.length === 0 && car.availabilityCalendar.length === 0) {
+          return true;
+        }
+
         // Check if there are any overlapping bookings
-        const hasOverlappingBooking = car.bookings.some(booking => {
-          const bookingStart = new Date(booking.startDate);
-          const bookingEnd = new Date(booking.endDate);
-          const requestedStart = new Date(startDate);
-          const requestedEnd = new Date(endDate);
+        if (car.bookings.length > 0) {
+          const hasOverlappingBooking = car.bookings.some(booking => {
+            const bookingStart = new Date(booking.startDate);
+            const bookingEnd = new Date(booking.endDate);
+            const requestedStart = new Date(startDate);
+            const requestedEnd = new Date(endDate);
 
-          return (
-            (requestedStart >= bookingStart && requestedStart <= bookingEnd) ||
-            (requestedEnd >= bookingStart && requestedEnd <= bookingEnd) ||
-            (requestedStart <= bookingStart && requestedEnd >= bookingEnd)
-          );
-        });
+            return (
+              (requestedStart >= bookingStart && requestedStart <= bookingEnd) ||
+              (requestedEnd >= bookingStart && requestedEnd <= bookingEnd) ||
+              (requestedStart <= bookingStart && requestedEnd >= bookingEnd)
+            );
+          });
 
-        if (hasOverlappingBooking) return false;
+          if (hasOverlappingBooking) return false;
+        }
 
         // Check if the requested dates are within the car's availability calendar
-        const isWithinAvailability = car.availabilityCalendar.some(range => {
-          const rangeStart = new Date(range.startDate);
-          const rangeEnd = new Date(range.endDate);
-          const requestedStart = new Date(startDate);
-          const requestedEnd = new Date(endDate);
+        if (car.availabilityCalendar.length > 0) {
+          const isWithinAvailability = car.availabilityCalendar.some(range => {
+            const rangeStart = new Date(range.startDate);
+            const rangeEnd = new Date(range.endDate);
+            const requestedStart = new Date(startDate);
+            const requestedEnd = new Date(endDate);
 
-          return requestedStart >= rangeStart && requestedEnd <= rangeEnd;
-        });
+            return requestedStart >= rangeStart && requestedEnd <= rangeEnd;
+          });
 
-        return isWithinAvailability;
+          if (!isWithinAvailability) return false;
+        }
+
+        return true;
       },
 
       addBooking: async (carId: string, booking: Booking) => {

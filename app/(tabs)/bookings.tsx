@@ -1,112 +1,274 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
   View,
-  FlatList,
+  ScrollView,
+  Image,
   TouchableOpacity,
-  ActivityIndicator,
 } from "react-native";
+import { useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import {
+  Calendar,
+  MapPin,
+  ChevronRight,
+  Clock,
+  History,
+  Car,
+  User,
+} from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { useCarStore } from "@/stores/carStore";
 import { useUserStore } from "@/stores/userStore";
 import { useBookingStore } from "@/stores/bookingStore";
-import BookingItem from "@/components/BookingItem";
 
-type BookingTab = "renter" | "owner";
+type BookingTab = "active" | "history";
+type BookingType = "renter" | "owner";
 
 export default function BookingsScreen() {
   const router = useRouter();
+  const { cars } = useCarStore();
   const { currentUser } = useUserStore();
-  const { bookings, getBookingsByUserId, fetchBookings } = useBookingStore();
-  const [activeTab, setActiveTab] = useState<BookingTab>("renter");
-  const [isLoading, setIsLoading] = useState(true);
+  const { bookings, getBookingsByUserId } = useBookingStore();
+  const [renterBookings, setRenterBookings] = useState<any[]>([]);
+  const [ownerBookings, setOwnerBookings] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<BookingTab>("active");
+  const [activeType, setActiveType] = useState<BookingType>("renter");
 
   useEffect(() => {
-    fetchBookings();
-    
-    // Set loading to false after a short delay to ensure component is mounted
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Handle authentication redirect in useEffect
-  useEffect(() => {
-    if (!isLoading && !currentUser) {
-      router.replace("/auth/login");
+    if (currentUser) {
+      const renterBookings = getBookingsByUserId(currentUser.id, true);
+      const ownerBookings = getBookingsByUserId(currentUser.id, false);
+      setRenterBookings(renterBookings);
+      setOwnerBookings(ownerBookings);
     }
-  }, [currentUser, router, isLoading]);
+  }, [currentUser, bookings]);
 
-  // Show loading state while checking authentication
-  if (isLoading || !currentUser) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
-  const userBookings = getBookingsByUserId(
-    currentUser.id,
-    activeTab === "renter"
-  );
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "confirmed":
+        return Colors.success;
+      case "pending":
+        return Colors.warning;
+      case "cancelled":
+        return Colors.error;
+      default:
+        return Colors.textSecondary;
+    }
+  };
+
+  const filterBookings = (bookings: any[]) => {
+    const now = new Date();
+    return bookings.filter((booking) => {
+      const endDate = new Date(booking.endDate);
+      if (activeTab === "active") {
+        return endDate >= now && booking.status !== "cancelled";
+      } else {
+        return endDate < now || booking.status === "cancelled";
+      }
+    });
+  };
 
   const renderTabs = () => (
     <View style={styles.tabsContainer}>
       <TouchableOpacity
-        style={[styles.tab, activeTab === "renter" && styles.activeTab]}
-        onPress={() => setActiveTab("renter")}
+        style={[styles.tab, activeTab === "active" && styles.activeTab]}
+        onPress={() => setActiveTab("active")}
       >
+        <Clock
+          size={16}
+          color={activeTab === "active" ? Colors.primary : Colors.textSecondary}
+        />
         <Text
           style={[
             styles.tabText,
-            activeTab === "renter" && styles.activeTabText,
+            activeTab === "active" && styles.activeTabText,
           ]}
         >
-          My Rentals
+          Active
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, activeTab === "owner" && styles.activeTab]}
-        onPress={() => setActiveTab("owner")}
+        style={[styles.tab, activeTab === "history" && styles.activeTab]}
+        onPress={() => setActiveTab("history")}
       >
+        <History
+          size={16}
+          color={
+            activeTab === "history" ? Colors.primary : Colors.textSecondary
+          }
+        />
         <Text
           style={[
             styles.tabText,
-            activeTab === "owner" && styles.activeTabText,
+            activeTab === "history" && styles.activeTabText,
           ]}
         >
-          My Car Bookings
+          History
         </Text>
       </TouchableOpacity>
     </View>
   );
 
+  const renderTypeTabs = () => (
+    <View style={styles.typeTabsContainer}>
+      <TouchableOpacity
+        style={[
+          styles.typeTab,
+          activeType === "renter" && styles.activeTypeTab,
+        ]}
+        onPress={() => setActiveType("renter")}
+      >
+        <Car
+          size={16}
+          color={
+            activeType === "renter" ? Colors.primary : Colors.textSecondary
+          }
+        />
+        <Text
+          style={[
+            styles.typeTabText,
+            activeType === "renter" && styles.activeTypeTabText,
+          ]}
+        >
+          Rented Vehicles
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.typeTab, activeType === "owner" && styles.activeTypeTab]}
+        onPress={() => setActiveType("owner")}
+      >
+        <User
+          size={16}
+          color={activeType === "owner" ? Colors.primary : Colors.textSecondary}
+        />
+        <Text
+          style={[
+            styles.typeTabText,
+            activeType === "owner" && styles.activeTypeTabText,
+          ]}
+        >
+          My Vehicles
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (!currentUser) {
+    return (
+      <View style={styles.container}>
+        <Text>Please sign in to view your bookings</Text>
+      </View>
+    );
+  }
+
+  const currentBookings =
+    activeType === "renter" ? renterBookings : ownerBookings;
+  const filteredBookings = filterBookings(currentBookings);
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {renderTabs()}
-
-      <FlatList
-        data={userBookings}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <BookingItem booking={item} />}
-        contentContainerStyle={styles.bookingsList}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>No bookings found</Text>
-            <Text style={styles.emptyText}>
-              {activeTab === "renter"
-                ? "You haven't rented any cars yet"
-                : "Your cars haven't been booked yet"}
-            </Text>
-          </View>
-        }
+      <Stack.Screen
+        options={{
+          title: "My Bookings",
+        }}
       />
+
+      {renderTabs()}
+      {renderTypeTabs()}
+
+      {filteredBookings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>
+            {activeTab === "active" ? "No Active Bookings" : "No Past Bookings"}
+          </Text>
+          <Text style={styles.emptyText}>
+            {activeTab === "active"
+              ? `Your upcoming ${activeType} bookings will appear here`
+              : `Your past ${activeType} bookings will appear here`}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView}>
+          {filteredBookings.map((booking) => {
+            const car = cars.find((c) => c.id === booking.carId);
+            if (!car) return null;
+
+            return (
+              <TouchableOpacity
+                key={booking.id}
+                style={styles.bookingCard}
+                onPress={() => router.push(`/booking/${booking.id}`)}
+              >
+                <Image
+                  source={{ uri: car.images[0] }}
+                  style={styles.carImage}
+                />
+                <View style={styles.bookingInfo}>
+                  <View style={styles.headerRow}>
+                    <Text style={styles.carName}>
+                      {car.year} {car.make} {car.model}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.status,
+                        { color: getStatusColor(booking.status) },
+                      ]}
+                    >
+                      {booking.status}
+                    </Text>
+                  </View>
+
+                  <View style={styles.locationContainer}>
+                    <MapPin size={16} color={Colors.textSecondary} />
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {car.location.address.split(",")[0]}
+                    </Text>
+                  </View>
+
+                  <View style={styles.dateContainer}>
+                    <View style={styles.dateItem}>
+                      <Text style={styles.dateLabel}>Start</Text>
+                      <View style={styles.dateValueContainer}>
+                        <Calendar size={16} color={Colors.primary} />
+                        <Text style={styles.dateValue}>
+                          {formatDate(booking.startDate)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.dateDivider} />
+                    <View style={styles.dateItem}>
+                      <Text style={styles.dateLabel}>End</Text>
+                      <View style={styles.dateValueContainer}>
+                        <Calendar size={16} color={Colors.primary} />
+                        <Text style={styles.dateValue}>
+                          {formatDate(booking.endDate)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.priceLabel}>Total Price</Text>
+                    <Text style={styles.priceValue}>${booking.totalPrice}</Text>
+                  </View>
+                </View>
+                <ChevronRight size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -116,17 +278,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.white,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    marginTop: 12,
-  },
   tabsContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
@@ -134,8 +285,11 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 8,
   },
   activeTab: {
     borderBottomWidth: 2,
@@ -149,13 +303,38 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: Colors.primary,
   },
-  bookingsList: {
-    padding: 16,
+  typeTabsContainer: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  typeTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 8,
+  },
+  activeTypeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
+  },
+  typeTabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+  },
+  activeTypeTabText: {
+    color: Colors.primary,
+  },
+  scrollView: {
+    flex: 1,
   },
   emptyContainer: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   emptyTitle: {
@@ -165,8 +344,89 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.textSecondary,
     textAlign: "center",
+  },
+  bookingCard: {
+    flexDirection: "row",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    alignItems: "center",
+  },
+  carImage: {
+    width: 80,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 16,
+  },
+  bookingInfo: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  carName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  status: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginLeft: 4,
+  },
+  dateContainer: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  dateItem: {
+    flex: 1,
+  },
+  dateLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  dateValueContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  dateValue: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  dateDivider: {
+    width: 1,
+    backgroundColor: Colors.border,
+    marginHorizontal: 16,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  priceValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
   },
 });

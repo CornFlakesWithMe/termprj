@@ -191,7 +191,7 @@ export const useBookingStore = create<BookingState>()(
         } else {
           // Get bookings where user is the car owner
           const carStore = useCarStore.getState();
-          const userCars = carStore.getCarsByOwnerId(userId);
+          const userCars = carStore.getCarsByOwner(userId);
           const userCarIds = userCars.map(car => car.id);
           
           return bookings.filter(booking => userCarIds.includes(booking.carId));

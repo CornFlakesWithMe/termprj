@@ -82,13 +82,6 @@ export default function SearchScreen() {
     }
   }, [params, currentUser, isLoading]);
 
-  // Perform search when filters change
-  useEffect(() => {
-    if (!isLoading && currentUser) {
-      searchCars(filters);
-    }
-  }, [filters, isLoading, currentUser]);
-
   // Show loading state while checking authentication
   if (isLoading || !currentUser) {
     return (
@@ -100,7 +93,10 @@ export default function SearchScreen() {
   }
 
   const applyFilters = (newFilters: SearchFilters) => {
-    setFilters(newFilters);
+    console.log("Applying new filters:", newFilters); // Debug log
+    const updatedFilters = { ...filters, ...newFilters };
+    setFilters(updatedFilters);
+    searchCars(updatedFilters);
   };
 
   const handleSearch = () => {
@@ -123,10 +119,31 @@ export default function SearchScreen() {
 
     setStartDate(start);
     setEndDate(end);
-    setFilters(newFilters);
+    applyFilters(newFilters);
+  };
+
+  const handlePriceRangeChange = (
+    min: number | undefined,
+    max: number | undefined
+  ) => {
+    console.log("Price range changed:", { min, max }); // Debug log
+    setPriceRange({ min, max });
+    const newFilters = { ...filters };
+    if (min !== undefined) {
+      newFilters.priceMin = min;
+    } else {
+      delete newFilters.priceMin;
+    }
+    if (max !== undefined) {
+      newFilters.priceMax = max;
+    } else {
+      delete newFilters.priceMax;
+    }
+    applyFilters(newFilters);
   };
 
   const handleApplyFilters = () => {
+    console.log("Applying filters..."); // Debug log
     const newFilters: SearchFilters = {};
 
     if (searchQuery) {
@@ -158,22 +175,25 @@ export default function SearchScreen() {
       newFilters.seats = seatsFilter;
     }
 
-    setFilters(newFilters);
+    console.log("New filters to apply:", newFilters); // Debug log
+    applyFilters(newFilters);
     setIsFilterModalVisible(false);
   };
 
   const handleResetFilters = () => {
+    console.log("Resetting filters..."); // Debug log
     setStartDate(null);
     setEndDate(null);
     setSelectedType(undefined);
     setSelectedFeatures([]);
     setPriceRange({});
     setSeatsFilter(undefined);
-    setFilters({});
+    applyFilters({});
     setIsFilterModalVisible(false);
   };
 
   const toggleFeature = (feature: string) => {
+    console.log("Toggling feature:", feature); // Debug log
     const newFeatures = selectedFeatures.includes(feature)
       ? selectedFeatures.filter((f) => f !== feature)
       : [...selectedFeatures, feature];
@@ -187,7 +207,7 @@ export default function SearchScreen() {
       delete newFilters.features;
     }
 
-    setFilters(newFilters);
+    applyFilters(newFilters);
   };
 
   const renderFilterModal = () => (
@@ -247,7 +267,12 @@ export default function SearchScreen() {
                   styles.priceButton,
                   priceRange.max === 50 && styles.selectedPriceButton,
                 ]}
-                onPress={() => setPriceRange({ max: 50 })}
+                onPress={() => {
+                  setPriceRange({ max: 50 });
+                  const newFilters = { ...filters, priceMax: 50 };
+                  delete newFilters.priceMin;
+                  applyFilters(newFilters);
+                }}
               >
                 <Text
                   style={[
@@ -265,7 +290,10 @@ export default function SearchScreen() {
                     priceRange.max === 100 &&
                     styles.selectedPriceButton,
                 ]}
-                onPress={() => setPriceRange({ min: 50, max: 100 })}
+                onPress={() => {
+                  setPriceRange({ min: 50, max: 100 });
+                  applyFilters({ ...filters, priceMin: 50, priceMax: 100 });
+                }}
               >
                 <Text
                   style={[
@@ -283,7 +311,10 @@ export default function SearchScreen() {
                   styles.priceButton,
                   priceRange.min === 100 && styles.selectedPriceButton,
                 ]}
-                onPress={() => setPriceRange({ min: 100 })}
+                onPress={() => {
+                  setPriceRange({ min: 100 });
+                  applyFilters({ ...filters, priceMin: 100 });
+                }}
               >
                 <Text
                   style={[
@@ -305,9 +336,12 @@ export default function SearchScreen() {
                     styles.seatsButton,
                     seatsFilter === seats && styles.selectedSeatsButton,
                   ]}
-                  onPress={() =>
-                    setSeatsFilter(seatsFilter === seats ? undefined : seats)
-                  }
+                  onPress={() => {
+                    const newSeatsFilter =
+                      seatsFilter === seats ? undefined : seats;
+                    setSeatsFilter(newSeatsFilter);
+                    applyFilters({ ...filters, seats: newSeatsFilter });
+                  }}
                 >
                   <Text
                     style={[
@@ -393,9 +427,7 @@ export default function SearchScreen() {
             <TouchableOpacity
               onPress={() => {
                 setSelectedType(undefined);
-                const newFilters = { ...filters };
-                delete newFilters.carType;
-                applyFilters(newFilters);
+                applyFilters({ ...filters, carType: undefined });
               }}
             >
               <X size={14} color={Colors.primary} />
@@ -420,10 +452,11 @@ export default function SearchScreen() {
               onPress={() => {
                 setStartDate(null);
                 setEndDate(null);
-                const newFilters = { ...filters };
-                delete newFilters.startDate;
-                delete newFilters.endDate;
-                applyFilters(newFilters);
+                applyFilters({
+                  ...filters,
+                  startDate: undefined,
+                  endDate: undefined,
+                });
               }}
             >
               <X size={14} color={Colors.primary} />

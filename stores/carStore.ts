@@ -29,8 +29,8 @@ interface CarState {
 export const useCarStore = create<CarState>()(
   persist(
     (set, get) => ({
-      cars: [],
-      filteredCars: [],
+      cars: MOCK_CARS,
+      filteredCars: MOCK_CARS,
       selectedCar: null,
       isLoading: false,
       error: null,
@@ -139,9 +139,6 @@ export const useCarStore = create<CarState>()(
         const car = get().getCarById(carId);
         if (!car) return false;
 
-        // Check if the car is available
-        if (!car.isAvailable) return false;
-
         // Convert dates to Date objects for comparison
         const requestedStart = new Date(startDate);
         const requestedEnd = new Date(endDate);
@@ -150,7 +147,7 @@ export const useCarStore = create<CarState>()(
         if (requestedStart >= requestedEnd) return false;
 
         // Check if there are any overlapping bookings
-        if (car.bookings.length > 0) {
+        if (car.bookings && car.bookings.length > 0) {
           const hasOverlappingBooking = car.bookings.some(booking => {
             const bookingStart = new Date(booking.startDate);
             const bookingEnd = new Date(booking.endDate);
@@ -166,7 +163,7 @@ export const useCarStore = create<CarState>()(
         }
 
         // Check if the requested dates are within the car's availability calendar
-        if (car.availabilityCalendar.length > 0) {
+        if (car.availabilityCalendar && car.availabilityCalendar.length > 0) {
           const isWithinAvailability = car.availabilityCalendar.some(range => {
             const rangeStart = new Date(range.startDate);
             const rangeEnd = new Date(range.endDate);
@@ -174,9 +171,10 @@ export const useCarStore = create<CarState>()(
             return requestedStart >= rangeStart && requestedEnd <= rangeEnd;
           });
 
-          if (!isWithinAvailability) return false;
+          return isWithinAvailability;
         }
 
+        // If no availability calendar is set, the car is available
         return true;
       },
 
@@ -205,53 +203,56 @@ export const useCarStore = create<CarState>()(
       },
 
       searchCars: (filters: SearchFilters) => {
-        const { cars } = get();
-        
-        let filtered = [...cars];
+        console.log("Searching cars with filters:", filters); // Debug log
+        let filtered = [...get().cars];
 
-        // Apply filters
-        if (filters.carType) {
-          filtered = filtered.filter(car => car.type === filters.carType);
-        }
-
-        if (filters.features && filters.features.length > 0) {
-          filtered = filtered.filter(car => 
-            filters.features!.every(feature => car.features.includes(feature))
-          );
-        }
-
-        if (filters.priceMin !== undefined) {
-          filtered = filtered.filter(car => car.pricePerDay >= filters.priceMin!);
-        }
-
-        if (filters.priceMax !== undefined) {
-          filtered = filtered.filter(car => car.pricePerDay <= filters.priceMax!);
-        }
-
-        if (filters.seats) {
-          filtered = filtered.filter(car => car.seats >= filters.seats!);
-        }
-
+        // Apply location filter
         if (filters.location) {
-          filtered = filtered.filter(car => 
+          filtered = filtered.filter(car =>
             car.location.address.toLowerCase().includes(filters.location!.toLowerCase())
           );
         }
 
-        if (filters.startDate && filters.endDate) {
+        // Apply car type filter
+        if (filters.carType) {
+          filtered = filtered.filter(car => car.type === filters.carType);
+        }
+
+        // Apply features filter
+        if (filters.features && filters.features.length > 0) {
+          filtered = filtered.filter(car =>
+            filters.features!.every(feature => car.features.includes(feature))
+          );
+        }
+
+        // Apply price range filter
+        if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
           filtered = filtered.filter(car => {
-            const start = new Date(filters.startDate!);
-            const end = new Date(filters.endDate!);
-            
-            return car.availabilityCalendar.some(range => {
-              const rangeStart = new Date(range.startDate);
-              const rangeEnd = new Date(range.endDate);
-              
-              return start >= rangeStart && end <= rangeEnd;
-            });
+            const price = car.pricePerDay;
+            const min = filters.priceMin !== undefined ? filters.priceMin : 0;
+            const max = filters.priceMax !== undefined ? filters.priceMax : Infinity;
+            return price >= min && price <= max;
           });
         }
 
+        // Apply seats filter
+        if (filters.seats) {
+          filtered = filtered.filter(car => car.seats >= filters.seats!);
+        }
+
+        // Apply date availability filter
+        if (filters.startDate && filters.endDate) {
+          filtered = filtered.filter(car => {
+            const isAvailable = get().checkAvailability(
+              car.id,
+              filters.startDate!,
+              filters.endDate!
+            );
+            return isAvailable;
+          });
+        }
+
+        console.log("Filtered cars:", filtered); // Debug log
         set({ filteredCars: filtered });
       },
 
@@ -268,7 +269,6 @@ export const useCarStore = create<CarState>()(
       name: "drive-share-car-storage",
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
-        // Initialize with mock data only if no cars exist
         if (state && state.cars.length === 0) {
           state.cars = MOCK_CARS;
           state.filteredCars = MOCK_CARS;

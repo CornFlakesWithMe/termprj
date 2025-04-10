@@ -139,9 +139,6 @@ export const useCarStore = create<CarState>()(
         const car = get().getCarById(carId);
         if (!car) return false;
 
-        // Check if the car is available
-        if (!car.isAvailable) return false;
-
         // Convert dates to Date objects for comparison
         const requestedStart = new Date(startDate);
         const requestedEnd = new Date(endDate);
@@ -150,7 +147,7 @@ export const useCarStore = create<CarState>()(
         if (requestedStart >= requestedEnd) return false;
 
         // Check if there are any overlapping bookings
-        if (car.bookings.length > 0) {
+        if (car.bookings && car.bookings.length > 0) {
           const hasOverlappingBooking = car.bookings.some(booking => {
             const bookingStart = new Date(booking.startDate);
             const bookingEnd = new Date(booking.endDate);
@@ -166,7 +163,7 @@ export const useCarStore = create<CarState>()(
         }
 
         // Check if the requested dates are within the car's availability calendar
-        if (car.availabilityCalendar.length > 0) {
+        if (car.availabilityCalendar && car.availabilityCalendar.length > 0) {
           const isWithinAvailability = car.availabilityCalendar.some(range => {
             const rangeStart = new Date(range.startDate);
             const rangeEnd = new Date(range.endDate);
@@ -174,9 +171,10 @@ export const useCarStore = create<CarState>()(
             return requestedStart >= rangeStart && requestedEnd <= rangeEnd;
           });
 
-          if (!isWithinAvailability) return false;
+          return isWithinAvailability;
         }
 
+        // If no availability calendar is set, the car is available
         return true;
       },
 

@@ -41,10 +41,12 @@ export default function CarDetailScreen() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [carReviews, setCarReviews] = useState<any[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
       selectCar(id as string);
+      setIsLoading(false);
     }
   }, [id]);
 
@@ -55,34 +57,8 @@ export default function CarDetailScreen() {
     }
   }, [selectedCar, reviews]);
 
-  if (!selectedCar) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
-  const owner = useUserStore.getState().getUserById(selectedCar.ownerId);
-
-  const handleDateChange = (start: Date | null, end: Date | null) => {
-    console.log("Date change:", { start, end });
-    setStartDate(start);
-    setEndDate(end);
-  };
-
-  const isAvailable =
-    startDate &&
-    endDate &&
-    isCarAvailable(
-      selectedCar.id,
-      startDate.toISOString(),
-      endDate.toISOString()
-    );
-
-  // Debug logs
   useEffect(() => {
-    if (startDate && endDate) {
+    if (startDate && endDate && selectedCar) {
       const availability = isCarAvailable(
         selectedCar.id,
         startDate.toISOString(),
@@ -100,8 +76,28 @@ export default function CarDetailScreen() {
     }
   }, [startDate, endDate, selectedCar]);
 
+  const owner = selectedCar
+    ? useUserStore.getState().getUserById(selectedCar.ownerId)
+    : null;
+
+  const handleDateChange = (start: Date | null, end: Date | null) => {
+    console.log("Date change:", { start, end });
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const isAvailable =
+    startDate &&
+    endDate &&
+    selectedCar &&
+    isCarAvailable(
+      selectedCar.id,
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
+
   const calculateTotalPrice = () => {
-    if (!startDate || !endDate) return 0;
+    if (!startDate || !endDate || !selectedCar) return 0;
 
     const days = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -111,7 +107,7 @@ export default function CarDetailScreen() {
   };
 
   const handleBookNow = () => {
-    if (!currentUser || !startDate || !endDate) return;
+    if (!currentUser || !startDate || !endDate || !selectedCar) return;
 
     router.push({
       pathname: "/booking/new",
@@ -142,6 +138,14 @@ export default function CarDetailScreen() {
       console.error("Failed to delete car:", error);
     }
   };
+
+  if (isLoading || !selectedCar) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>

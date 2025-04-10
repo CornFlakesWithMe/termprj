@@ -80,6 +80,8 @@ export const MOCK_CARS: Car[] = [
     ],
     bookings: [],
     isAvailable: true,
+    rating: 4.5,
+    reviewCount: 12,
     createdAt: new Date("2023-01-15").toISOString(),
   },
   {
@@ -113,6 +115,8 @@ export const MOCK_CARS: Car[] = [
     ],
     bookings: [],
     isAvailable: true,
+    rating: 4.8,
+    reviewCount: 8,
     createdAt: new Date("2023-02-20").toISOString(),
   },
   {
@@ -146,6 +150,8 @@ export const MOCK_CARS: Car[] = [
     ],
     bookings: [],
     isAvailable: true,
+    rating: 4.2,
+    reviewCount: 15,
     createdAt: new Date("2023-03-10").toISOString(),
   },
 ];

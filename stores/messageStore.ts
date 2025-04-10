@@ -36,9 +36,17 @@ export const useMessageStore = create<MessageState>()(
         set({ isLoading: true, error: null });
         
         try {
-          // In a real app, this would be an API call
-          // For demo purposes, we're using mock data
-          set({ messages: MOCK_MESSAGES, isLoading: false });
+          // Get existing messages from state
+          const existingMessages = get().messages;
+          
+          // If we have existing messages, use those instead of mock data
+          const messagesToUse = existingMessages.length > 0 ? existingMessages : MOCK_MESSAGES;
+          
+          set({ 
+            messages: messagesToUse,
+            isLoading: false,
+            error: null
+          });
         } catch (error) {
           set({ isLoading: false, error: "Failed to fetch messages" });
         }
@@ -176,6 +184,7 @@ export const useMessageStore = create<MessageState>()(
     {
       name: "drive-share-message-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ messages: state.messages }), // Only persist messages
     }
   )
 );

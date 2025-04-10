@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Send } from "lucide-react-native";
+import { Send, ChevronLeft } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useUserStore } from "@/stores/userStore";
 import { useMessageStore } from "@/stores/messageStore";
@@ -22,7 +22,8 @@ export default function ConversationScreen() {
   const { userId } = useLocalSearchParams();
   const router = useRouter();
   const { currentUser } = useUserStore();
-  const { messages, sendMessage, setCurrentConversation } = useMessageStore();
+  const { messages, sendMessage, setCurrentConversation, fetchMessages } =
+    useMessageStore();
   const [messageText, setMessageText] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
   const [conversationMessages, setConversationMessages] = useState<any[]>([]);
@@ -33,6 +34,9 @@ export default function ConversationScreen() {
       router.replace("/auth/login");
       return;
     }
+
+    // Fetch messages when component mounts
+    fetchMessages();
 
     if (userId) {
       const user = useUserStore.getState().getUserById(userId as string);
@@ -51,7 +55,7 @@ export default function ConversationScreen() {
       const conversation = useMessageStore
         .getState()
         .getConversation(currentUser.id, userId as string);
-      
+
       setConversationMessages(conversation);
     }
   }, [currentUser, userId, messages]);
@@ -89,17 +93,27 @@ export default function ConversationScreen() {
           title: otherUser.name,
           headerTitleStyle: styles.headerTitle,
           headerLeft: () => (
-            <TouchableOpacity
-              style={styles.headerAvatar}
-              onPress={() => router.push(`/profile/${otherUser.id}`)}
-            >
-              <Image
-                source={{
-                  uri: otherUser.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
-                }}
-                style={styles.avatar}
-              />
-            </TouchableOpacity>
+            <View style={styles.headerLeftContainer}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <ChevronLeft size={24} color={Colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerAvatar}
+                onPress={() => router.push(`/profile/${otherUser.id}`)}
+              >
+                <Image
+                  source={{
+                    uri:
+                      otherUser.avatar ||
+                      "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
+                  }}
+                  style={styles.avatar}
+                />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -118,7 +132,9 @@ export default function ConversationScreen() {
           )}
           contentContainerStyle={styles.messagesList}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: false })
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
@@ -168,6 +184,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
+  },
+  headerLeftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
   },
   headerAvatar: {
     marginRight: 8,

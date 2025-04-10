@@ -3,45 +3,46 @@ import {
   StyleSheet,
   Text,
   View,
-  ScrollView,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useUserStore } from "@/stores/userStore";
 import { useCarStore } from "@/stores/carStore";
-import Button from "@/components/Button";
 import { CarBuilder } from "@/patterns/builder";
-import { CarType } from "@/types/car";
+import { CAR_FEATURES } from "@/constants/mockData";
 
 export default function BecomeOwnerScreen() {
   const router = useRouter();
   const { currentUser } = useUserStore();
   const { createCar } = useCarStore();
   const [isLoading, setIsLoading] = useState(false);
-
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     make: "",
     model: "",
     year: "",
-    type: "Sedan" as CarType,
-    seats: "",
+    type: "Sedan",
+    seats: "5",
     color: "",
     licensePlate: "",
     mileage: "",
     pricePerDay: "",
-    location: "",
+    location: {
+      address: "",
+      latitude: 0,
+      longitude: 0,
+    },
     description: "",
   });
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleSubmit = async () => {
+    if (!currentUser) return;
+
     try {
       setIsLoading(true);
 
@@ -73,7 +74,7 @@ export default function BecomeOwnerScreen() {
         .setImages([
           "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2",
         ]) // Default car image
-        .setFeatures([]) // Empty features array by default
+        .setFeatures(selectedFeatures)
         .setAvailability([]) // Empty availability calendar by default
         .build();
 
@@ -83,8 +84,11 @@ export default function BecomeOwnerScreen() {
       // Update user to be a car owner
       useUserStore.getState().updateUser(currentUser.id, { isCarOwner: true });
 
-      Alert.alert("Success", "Your car has been listed successfully!");
-      router.back();
+      // Redirect to bookings page with My Vehicles tab active
+      router.replace({
+        pathname: "/(tabs)/bookings",
+        params: { tab: "my-vehicles" },
+      });
     } catch (error) {
       Alert.alert("Error", "Failed to list your car. Please try again.");
     } finally {
@@ -92,154 +96,167 @@ export default function BecomeOwnerScreen() {
     }
   };
 
+  const toggleFeature = (feature: string) => {
+    setSelectedFeatures((prev) =>
+      prev.includes(feature)
+        ? prev.filter((f) => f !== feature)
+        : [...prev, feature]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      <Stack.Screen
+        options={{
+          title: "List Your Car",
+        }}
+      />
+
       <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={styles.title}>List Your Car</Text>
-          <Text style={styles.subtitle}>Fill in your car details below</Text>
-        </View>
+        <View style={styles.formContainer}>
+          <Text style={styles.label}>Make *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Toyota"
+            value={formData.make}
+            onChangeText={(text) => setFormData({ ...formData, make: text })}
+          />
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Make *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.make}
-              onChangeText={(value) => handleInputChange("make", value)}
-              placeholder="e.g., Toyota"
-            />
-          </View>
+          <Text style={styles.label}>Model *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Camry"
+            value={formData.model}
+            onChangeText={(text) => setFormData({ ...formData, model: text })}
+          />
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Model *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.model}
-              onChangeText={(value) => handleInputChange("model", value)}
-              placeholder="e.g., Camry"
-            />
-          </View>
+          <Text style={styles.label}>Year *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="2020"
+            value={formData.year}
+            onChangeText={(text) => setFormData({ ...formData, year: text })}
+            keyboardType="numeric"
+          />
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Year *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.year}
-              onChangeText={(value) => handleInputChange("year", value)}
-              placeholder="e.g., 2020"
-              keyboardType="numeric"
-            />
-          </View>
+          <Text style={styles.label}>Type</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Sedan"
+            value={formData.type}
+            onChangeText={(text) => setFormData({ ...formData, type: text })}
+          />
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Type</Text>
-            <View style={styles.typeButtons}>
-              {["Sedan", "SUV", "Electric", "Luxury"].map((type) => (
-                <TouchableOpacity
-                  key={type}
+          <Text style={styles.label}>Seats</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="5"
+            value={formData.seats}
+            onChangeText={(text) => setFormData({ ...formData, seats: text })}
+            keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Color</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Silver"
+            value={formData.color}
+            onChangeText={(text) => setFormData({ ...formData, color: text })}
+          />
+
+          <Text style={styles.label}>License Plate</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="ABC123"
+            value={formData.licensePlate}
+            onChangeText={(text) =>
+              setFormData({ ...formData, licensePlate: text })
+            }
+          />
+
+          <Text style={styles.label}>Mileage</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="25000"
+            value={formData.mileage}
+            onChangeText={(text) => setFormData({ ...formData, mileage: text })}
+            keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Price Per Day *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="50"
+            value={formData.pricePerDay}
+            onChangeText={(text) =>
+              setFormData({ ...formData, pricePerDay: text })
+            }
+            keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Location</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="123 Main St, City, State"
+            value={formData.location.address}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                location: { ...formData.location, address: text },
+              })
+            }
+          />
+
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Describe your car..."
+            value={formData.description}
+            onChangeText={(text) =>
+              setFormData({ ...formData, description: text })
+            }
+            multiline
+            numberOfLines={4}
+          />
+
+          <Text style={styles.label}>Features</Text>
+          <View style={styles.featuresContainer}>
+            {CAR_FEATURES.map((feature) => (
+              <TouchableOpacity
+                key={feature}
+                style={[
+                  styles.featureButton,
+                  selectedFeatures.includes(feature) &&
+                    styles.selectedFeatureButton,
+                ]}
+                onPress={() => toggleFeature(feature)}
+              >
+                <Text
                   style={[
-                    styles.typeButton,
-                    formData.type === type && styles.typeButtonActive,
+                    styles.featureButtonText,
+                    selectedFeatures.includes(feature) &&
+                      styles.selectedFeatureButtonText,
                   ]}
-                  onPress={() => handleInputChange("type", type)}
                 >
-                  <Text
-                    style={[
-                      styles.typeButtonText,
-                      formData.type === type && styles.typeButtonTextActive,
-                    ]}
-                  >
-                    {type}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Number of Seats</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.seats}
-              onChangeText={(value) => handleInputChange("seats", value)}
-              placeholder="e.g., 5"
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Color</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.color}
-              onChangeText={(value) => handleInputChange("color", value)}
-              placeholder="e.g., Red"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>License Plate</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.licensePlate}
-              onChangeText={(value) => handleInputChange("licensePlate", value)}
-              placeholder="e.g., ABC123"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Mileage</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.mileage}
-              onChangeText={(value) => handleInputChange("mileage", value)}
-              placeholder="e.g., 50000"
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Price Per Day *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.pricePerDay}
-              onChangeText={(value) => handleInputChange("pricePerDay", value)}
-              placeholder="e.g., 50"
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.location}
-              onChangeText={(value) => handleInputChange("location", value)}
-              placeholder="e.g., New York, NY"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={formData.description}
-              onChangeText={(value) => handleInputChange("description", value)}
-              placeholder="Describe your car..."
-              multiline
-              numberOfLines={4}
-            />
+                  {feature}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-
-        <Button
-          title="List Car"
-          onPress={handleSubmit}
-          style={styles.submitButton}
-          loading={isLoading}
-        />
       </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.button, isLoading && styles.disabledButton]}
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>
+            {isLoading ? "Listing..." : "List Car"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -252,26 +269,8 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
+  formContainer: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-  },
-  form: {
-    padding: 16,
-  },
-  inputGroup: {
-    marginBottom: 16,
   },
   label: {
     fontSize: 16,
@@ -280,39 +279,56 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.card,
     borderRadius: 8,
     padding: 12,
+    marginBottom: 16,
     fontSize: 16,
-    color: Colors.text,
   },
   textArea: {
     height: 100,
     textAlignVertical: "top",
   },
-  typeButtons: {
+  featuresContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    marginBottom: 16,
   },
-  typeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+  featureButton: {
     backgroundColor: Colors.card,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
   },
-  typeButtonActive: {
+  selectedFeatureButton: {
     backgroundColor: Colors.primary,
   },
-  typeButtonText: {
+  featureButtonText: {
     fontSize: 14,
     color: Colors.text,
   },
-  typeButtonTextActive: {
+  selectedFeatureButtonText: {
     color: Colors.white,
   },
-  submitButton: {
-    margin: 16,
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

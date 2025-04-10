@@ -1,26 +1,15 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Image,
-  Alert,
-} from "react-native";
+import { StyleSheet, Text, View, ScrollView, Image, Alert } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  Calendar,
-  MapPin,
-  CreditCard,
-  DollarSign,
-} from "lucide-react-native";
+import { Calendar, MapPin, CreditCard, DollarSign } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useCarStore } from "@/stores/carStore";
 import { useUserStore } from "@/stores/userStore";
 import { useBookingStore } from "@/stores/bookingStore";
 import { usePaymentStore } from "@/stores/paymentStore";
 import Button from "@/components/Button";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function NewBookingScreen() {
   const { carId, startDate, endDate, totalPrice } = useLocalSearchParams();
@@ -122,9 +111,11 @@ export default function NewBookingScreen() {
               {car.year} {car.make} {car.model}
             </Text>
             <View style={styles.locationContainer}>
-              <MapPin size={16} color={Colors.textSecondary} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {car.location.address.split(",")[0]}
+              <Ionicons name="location" size={20} color="#666" />
+              <Text style={styles.locationText}>
+                {typeof car.location?.address === "string"
+                  ? car.location.address.split(",")[0]
+                  : "Location not specified"}
               </Text>
             </View>
           </View>
@@ -203,7 +194,9 @@ export default function NewBookingScreen() {
             <View style={styles.ownerContainer}>
               <Image
                 source={{
-                  uri: owner.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
+                  uri:
+                    owner.avatar ||
+                    "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
                 }}
                 style={styles.ownerAvatar}
               />

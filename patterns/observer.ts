@@ -1,29 +1,26 @@
 // Observer Pattern for Notifications
-export interface Observer {
-  update(data: any): void;
+import { Notification } from "@/types";
+
+interface Observer {
+  update(notification: Notification): void;
 }
 
-export class Subject {
+class Subject {
   private observers: Observer[] = [];
 
-  public addObserver(observer: Observer): void {
-    const isExist = this.observers.includes(observer);
-    if (!isExist) {
-      this.observers.push(observer);
+  public attach(observer: Observer): void {
+    this.observers.push(observer);
+  }
+
+  public detach(observer: Observer): void {
+    const index = this.observers.indexOf(observer);
+    if (index !== -1) {
+      this.observers.splice(index, 1);
     }
   }
 
-  public removeObserver(observer: Observer): void {
-    const observerIndex = this.observers.indexOf(observer);
-    if (observerIndex !== -1) {
-      this.observers.splice(observerIndex, 1);
-    }
-  }
-
-  public notify(data: any): void {
-    for (const observer of this.observers) {
-      observer.update(data);
-    }
+  public notify(notification: Notification): void {
+    this.observers.forEach((observer) => observer.update(notification));
   }
 }
 
@@ -43,41 +40,53 @@ export class NotificationCenter extends Subject {
 
   public sendBookingNotification(userId: string, message: string, bookingId: string): void {
     this.notify({
+      id: Date.now().toString(),
       type: "booking",
-      userId,
+      title: "New Booking",
       message,
+      userId,
       relatedId: bookingId,
-      timestamp: new Date().toISOString(),
+      read: false,
+      createdAt: new Date().toISOString(),
     });
   }
 
   public sendMessageNotification(userId: string, message: string, messageId: string): void {
     this.notify({
+      id: Date.now().toString(),
       type: "message",
-      userId,
+      title: "New Message",
       message,
+      userId,
       relatedId: messageId,
-      timestamp: new Date().toISOString(),
+      read: false,
+      createdAt: new Date().toISOString(),
     });
   }
 
   public sendPaymentNotification(userId: string, message: string, paymentId: string): void {
     this.notify({
+      id: Date.now().toString(),
       type: "payment",
-      userId,
+      title: "Payment Update",
       message,
+      userId,
       relatedId: paymentId,
-      timestamp: new Date().toISOString(),
+      read: false,
+      createdAt: new Date().toISOString(),
     });
   }
 
   public sendReviewNotification(userId: string, message: string, reviewId: string): void {
     this.notify({
+      id: Date.now().toString(),
       type: "review",
-      userId,
+      title: "New Review",
       message,
+      userId,
       relatedId: reviewId,
-      timestamp: new Date().toISOString(),
+      read: false,
+      createdAt: new Date().toISOString(),
     });
   }
 }

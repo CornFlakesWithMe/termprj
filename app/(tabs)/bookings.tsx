@@ -17,6 +17,7 @@ import {
   History,
   Car,
   User,
+  Star,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useCarStore } from "@/stores/carStore";
@@ -28,22 +29,25 @@ type BookingType = "renter" | "owner";
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const { cars } = useCarStore();
+  const { cars, getCarsByOwner } = useCarStore();
   const { currentUser } = useUserStore();
   const { bookings, getBookingsByUserId } = useBookingStore();
   const [renterBookings, setRenterBookings] = useState<any[]>([]);
   const [ownerBookings, setOwnerBookings] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<BookingTab>("active");
   const [activeType, setActiveType] = useState<BookingType>("renter");
+  const [ownedCars, setOwnedCars] = useState<Car[]>([]);
 
   useEffect(() => {
     if (currentUser) {
       const renterBookings = getBookingsByUserId(currentUser.id, true);
       const ownerBookings = getBookingsByUserId(currentUser.id, false);
+      const userCars = getCarsByOwner(currentUser.id);
       setRenterBookings(renterBookings);
       setOwnerBookings(ownerBookings);
+      setOwnedCars(userCars);
     }
-  }, [currentUser, bookings]);
+  }, [currentUser, bookings, cars, getCarsByOwner, getBookingsByUserId]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -187,7 +191,76 @@ export default function BookingsScreen() {
       {renderTabs()}
       {renderTypeTabs()}
 
-      {filteredBookings.length === 0 ? (
+      {activeType === "owner" && ownedCars.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No Vehicles Listed</Text>
+          <Text style={styles.emptyText}>
+            You haven't listed any vehicles yet. List your first vehicle to
+            start earning!
+          </Text>
+          <TouchableOpacity
+            style={styles.listCarButton}
+            onPress={() => router.push("/become-owner")}
+          >
+            <Text style={styles.listCarButtonText}>List Your Car</Text>
+          </TouchableOpacity>
+        </View>
+      ) : activeType === "owner" ? (
+        <ScrollView style={styles.scrollView}>
+          {ownedCars.map((car) => (
+            <TouchableOpacity
+              key={car.id}
+              style={styles.bookingCard}
+              onPress={() => router.push(`/car/${car.id}`)}
+            >
+              <Image source={{ uri: car.images[0] }} style={styles.carImage} />
+              <View style={styles.bookingInfo}>
+                <View style={styles.headerRow}>
+                  <Text style={styles.carName}>
+                    {car.year} {car.make} {car.model}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.status,
+                      {
+                        color: car.isAvailable ? Colors.success : Colors.error,
+                      },
+                    ]}
+                  >
+                    {car.isAvailable ? "Available" : "Booked"}
+                  </Text>
+                </View>
+
+                <View style={styles.locationContainer}>
+                  <MapPin size={16} color={Colors.textSecondary} />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {typeof car.location?.address === "string"
+                      ? car.location.address.split(",")[0]
+                      : "Location not specified"}
+                  </Text>
+                </View>
+
+                <View style={styles.footer}>
+                  <Text style={styles.price}>
+                    <Text style={styles.priceValue}>${car.pricePerDay}</Text>
+                    <Text style={styles.priceUnit}>/day</Text>
+                  </Text>
+                  <View style={styles.ratingContainer}>
+                    <Star
+                      size={16}
+                      color={Colors.warning}
+                      fill={Colors.warning}
+                    />
+                    <Text style={styles.rating}>
+                      {car.rating} ({car.reviewCount})
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : filteredBookings.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>
             {activeTab === "active" ? "No Active Bookings" : "No Past Bookings"}
@@ -232,7 +305,9 @@ export default function BookingsScreen() {
                   <View style={styles.locationContainer}>
                     <MapPin size={16} color={Colors.textSecondary} />
                     <Text style={styles.locationText} numberOfLines={1}>
-                      {car.location.address.split(",")[0]}
+                      {typeof car.location?.address === "string"
+                        ? car.location.address.split(",")[0]
+                        : "Location not specified"}
                     </Text>
                   </View>
 
@@ -428,5 +503,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: Colors.text,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  price: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  priceUnit: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  rating: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginLeft: 4,
+  },
+  listCarButton: {
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  listCarButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.white,
   },
 });

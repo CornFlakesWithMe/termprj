@@ -43,9 +43,12 @@ export default function BookingConfirmationScreen() {
     if (id) {
       const foundBooking = getBookingById(id as string);
       if (foundBooking) {
+        console.log("Found booking:", foundBooking);
         setBooking(foundBooking);
         const foundCar = cars.find((c) => c.id === foundBooking.carId);
         if (foundCar) {
+          console.log("Found car:", foundCar);
+          console.log("Car location:", foundCar.location);
           setCar(foundCar);
           const carOwner = useUserStore
             .getState()
@@ -109,6 +112,22 @@ export default function BookingConfirmationScreen() {
     }
   };
 
+  const getLocationText = () => {
+    if (!car.location) {
+      return "Location not specified";
+    }
+
+    if (typeof car.location === "string") {
+      return car.location;
+    }
+
+    if (typeof car.location.address === "string") {
+      return car.location.address.split(",")[0];
+    }
+
+    return "Location not specified";
+  };
+
   if (!booking || !car || !currentUser) {
     return (
       <View style={styles.loadingContainer}>
@@ -156,7 +175,7 @@ export default function BookingConfirmationScreen() {
             <View style={styles.locationContainer}>
               <MapPin size={16} color={Colors.textSecondary} />
               <Text style={styles.locationText} numberOfLines={1}>
-                {car.location.address.split(",")[0]}
+                {getLocationText()}
               </Text>
             </View>
           </View>

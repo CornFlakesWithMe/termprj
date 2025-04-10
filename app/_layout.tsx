@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import Colors from "@/constants/colors";
 import { useUserStore } from "@/stores/userStore";
+import { useNotificationStore } from "@/stores/notificationStore";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -21,7 +22,7 @@ export default function RootLayout() {
   });
 
   // Initialize user store
-  const initializeUser = useUserStore(state => state.initializeUser);
+  const initializeUser = useUserStore((state) => state.initializeUser);
 
   useEffect(() => {
     if (error) {
@@ -33,9 +34,11 @@ export default function RootLayout() {
   useEffect(() => {
     // Initialize user from storage
     initializeUser();
-    
+
     if (loaded) {
       SplashScreen.hideAsync();
+      // Initialize notifications
+      useNotificationStore.getState().initializeNotifications();
     }
   }, [loaded, initializeUser]);
 
@@ -72,14 +75,8 @@ function RootLayoutNav() {
         name="auth/forgot-password"
         options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="car/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="booking/new"
-        options={{ title: "Confirm Booking" }}
-      />
+      <Stack.Screen name="car/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="booking/new" options={{ title: "Confirm Booking" }} />
       <Stack.Screen
         name="booking/[id]"
         options={{ title: "Booking Details" }}
@@ -88,18 +85,12 @@ function RootLayoutNav() {
         name="messages/[userId]"
         options={{ title: "Conversation" }}
       />
-      <Stack.Screen
-        name="my-cars"
-        options={{ title: "My Cars" }}
-      />
+      <Stack.Screen name="my-cars" options={{ title: "My Cars" }} />
       <Stack.Screen
         name="become-owner"
         options={{ title: "Become a Car Owner" }}
       />
-      <Stack.Screen
-        name="profile/edit"
-        options={{ title: "Edit Profile" }}
-      />
+      <Stack.Screen name="profile/edit" options={{ title: "Edit Profile" }} />
       <Stack.Screen
         name="profile/personal-info"
         options={{ title: "Personal Information" }}
@@ -108,18 +99,9 @@ function RootLayoutNav() {
         name="profile/payment-methods"
         options={{ title: "Payment Methods" }}
       />
-      <Stack.Screen
-        name="profile/reviews"
-        options={{ title: "Reviews" }}
-      />
-      <Stack.Screen
-        name="profile/security"
-        options={{ title: "Security" }}
-      />
-      <Stack.Screen
-        name="reviews/[id]"
-        options={{ title: "Reviews" }}
-      />
+      <Stack.Screen name="profile/reviews" options={{ title: "Reviews" }} />
+      <Stack.Screen name="profile/security" options={{ title: "Security" }} />
+      <Stack.Screen name="reviews/[id]" options={{ title: "Reviews" }} />
     </Stack>
   );
 }

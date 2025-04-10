@@ -18,7 +18,6 @@ import {
   Star,
   LogOut,
   ChevronRight,
-  Shield,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useUserStore } from "@/stores/userStore";
@@ -34,7 +33,7 @@ export default function ProfileScreen() {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -87,11 +86,6 @@ export default function ProfileScreen() {
       title: "Reviews",
       onPress: () => router.push("/profile/reviews"),
     },
-    {
-      icon: <Shield size={24} color={Colors.primary} />,
-      title: "Security",
-      onPress: () => router.push("/profile/security"),
-    },
   ];
 
   return (
@@ -101,7 +95,9 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             <Image
               source={{
-                uri: currentUser.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
+                uri:
+                  currentUser.avatar ||
+                  "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
               }}
               style={styles.avatar}
             />
@@ -110,7 +106,9 @@ export default function ProfileScreen() {
               <Text style={styles.email}>{currentUser.email}</Text>
               <View style={styles.balanceContainer}>
                 <Text style={styles.balanceLabel}>Balance:</Text>
-                <Text style={styles.balance}>${currentUser.balance.toFixed(2)}</Text>
+                <Text style={styles.balance}>
+                  ${currentUser.balance.toFixed(2)}
+                </Text>
               </View>
             </View>
           </View>
@@ -123,37 +121,23 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.menuContainer}>
-          {menuItems.map(
-            (item, index) =>
-              (item.showIf === undefined || item.showIf) && (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.menuItem}
-                  onPress={item.onPress}
-                >
-                  <View style={styles.menuItemLeft}>
-                    {item.icon}
-                    <Text style={styles.menuItemTitle}>{item.title}</Text>
-                  </View>
-                  <ChevronRight size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              )
-          )}
+          {menuItems.map((item) => {
+            if (item.showIf === false) return null;
+            return (
+              <TouchableOpacity
+                key={item.title}
+                style={styles.menuItem}
+                onPress={item.onPress}
+              >
+                <View style={styles.menuItemLeft}>
+                  {item.icon}
+                  <Text style={styles.menuItemTitle}>{item.title}</Text>
+                </View>
+                <ChevronRight size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            );
+          })}
         </View>
-
-        {!currentUser.isCarOwner && (
-          <View style={styles.becomeOwnerContainer}>
-            <Text style={styles.becomeOwnerTitle}>Become a Car Owner</Text>
-            <Text style={styles.becomeOwnerText}>
-              List your car on DriveShare and start earning money
-            </Text>
-            <Button
-              title="List Your Car"
-              onPress={() => router.push("/become-owner")}
-              style={styles.becomeOwnerButton}
-            />
-          </View>
-        )}
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LogOut size={20} color={Colors.error} />
@@ -259,26 +243,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     marginLeft: 16,
-  },
-  becomeOwnerContainer: {
-    margin: 20,
-    padding: 20,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 12,
-  },
-  becomeOwnerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  becomeOwnerText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    marginBottom: 16,
-  },
-  becomeOwnerButton: {
-    backgroundColor: Colors.primary,
   },
   logoutButton: {
     flexDirection: "row",

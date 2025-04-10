@@ -240,7 +240,9 @@ export default function CarDetailScreen() {
             <View style={styles.detailItem}>
               <MapPin size={20} color={Colors.primary} />
               <Text style={styles.detailText} numberOfLines={1}>
-                {selectedCar.location.address.split(",")[0]}
+                {typeof selectedCar.location?.address === "string"
+                  ? selectedCar.location.address.split(",")[0]
+                  : "Location not specified"}
               </Text>
             </View>
           </View>

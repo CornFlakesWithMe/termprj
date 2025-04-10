@@ -74,8 +74,8 @@ export const MOCK_CARS: Car[] = [
     description: "Comfortable and reliable sedan perfect for city driving.",
     availabilityCalendar: [
       {
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
     ],
     rating: 4.5,
@@ -109,8 +109,8 @@ export const MOCK_CARS: Car[] = [
     description: "Spacious SUV with great fuel efficiency and modern features.",
     availabilityCalendar: [
       {
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
     ],
     rating: 4.8,
@@ -152,8 +152,8 @@ export const MOCK_CARS: Car[] = [
     description: "Luxury electric vehicle with advanced features and autopilot capability.",
     availabilityCalendar: [
       {
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
     ],
     rating: 4.9,

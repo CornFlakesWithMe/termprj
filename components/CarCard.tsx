@@ -1,5 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Image, ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Image,
+  ViewStyle,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { Car } from "@/types";
 import Colors from "@/constants/colors";
@@ -78,7 +85,9 @@ export default function CarCard({ car, style, compact = false }: CarCardProps) {
           <View style={styles.locationContainer}>
             <MapPin size={14} color={Colors.textSecondary} />
             <Text style={styles.location} numberOfLines={1}>
-              {car.location.address.split(",")[0]}
+              {typeof car.location?.address === "string"
+                ? car.location.address.split(",")[0]
+                : "Location not specified"}
             </Text>
           </View>
           <Text style={styles.price}>

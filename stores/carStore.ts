@@ -29,8 +29,8 @@ interface CarState {
 export const useCarStore = create<CarState>()(
   persist(
     (set, get) => ({
-      cars: MOCK_CARS,
-      filteredCars: MOCK_CARS,
+      cars: [],
+      filteredCars: [],
       selectedCar: null,
       isLoading: false,
       error: null,
@@ -64,6 +64,7 @@ export const useCarStore = create<CarState>()(
 
           set(state => ({
             cars: [...state.cars, newCar],
+            filteredCars: [...state.cars, newCar],
             isLoading: false,
           }));
 
@@ -141,22 +142,22 @@ export const useCarStore = create<CarState>()(
         // Check if the car is available
         if (!car.isAvailable) return false;
 
-        // If there are no bookings and no availability calendar, the car is available
-        if (car.bookings.length === 0 && car.availabilityCalendar.length === 0) {
-          return true;
-        }
+        // Convert dates to Date objects for comparison
+        const requestedStart = new Date(startDate);
+        const requestedEnd = new Date(endDate);
+
+        // Check if the requested dates are valid
+        if (requestedStart >= requestedEnd) return false;
 
         // Check if there are any overlapping bookings
         if (car.bookings.length > 0) {
           const hasOverlappingBooking = car.bookings.some(booking => {
             const bookingStart = new Date(booking.startDate);
             const bookingEnd = new Date(booking.endDate);
-            const requestedStart = new Date(startDate);
-            const requestedEnd = new Date(endDate);
 
             return (
-              (requestedStart >= bookingStart && requestedStart <= bookingEnd) ||
-              (requestedEnd >= bookingStart && requestedEnd <= bookingEnd) ||
+              (requestedStart >= bookingStart && requestedStart < bookingEnd) ||
+              (requestedEnd > bookingStart && requestedEnd <= bookingEnd) ||
               (requestedStart <= bookingStart && requestedEnd >= bookingEnd)
             );
           });
@@ -169,8 +170,6 @@ export const useCarStore = create<CarState>()(
           const isWithinAvailability = car.availabilityCalendar.some(range => {
             const rangeStart = new Date(range.startDate);
             const rangeEnd = new Date(range.endDate);
-            const requestedStart = new Date(startDate);
-            const requestedEnd = new Date(endDate);
 
             return requestedStart >= rangeStart && requestedEnd <= rangeEnd;
           });
@@ -266,8 +265,15 @@ export const useCarStore = create<CarState>()(
       },
     }),
     {
-      name: "car-storage",
+      name: "drive-share-car-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        // Initialize with mock data only if no cars exist
+        if (state && state.cars.length === 0) {
+          state.cars = MOCK_CARS;
+          state.filteredCars = MOCK_CARS;
+        }
+      },
     }
   )
 );
